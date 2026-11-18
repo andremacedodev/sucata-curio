@@ -32,3 +32,9 @@ Ou pela CLI: `supabase functions deploy convidar-membro`.
 
 **Convites por e-mail exigem SMTP próprio** (Authentication → Emails → SMTP Settings):
 o e-mail padrão do Supabase só entrega para membros do time do projeto e no máximo 2 por hora.
+
+## Scripts de operação (`supabase/scripts/`)
+
+| Script | Para quê |
+|---|---|
+| `nova_empresa.sql` | Cadastrar uma nova sucataria: cria a empresa, vincula o dono como admin e cadastra os materiais iniciais. Não envia e-mail (funciona sem SMTP). Antes, crie o usuário em Authentication > Users > Add user com "Auto Confirm User". |
