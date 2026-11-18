@@ -1,4 +1,10 @@
 -- ============================================================
+-- ⚠️ DESATUALIZADO — NÃO USAR PARA RECRIAR O BANCO
+-- Este é o schema original (pré multi-tenant). A produção já tem
+-- companies, company_members, profiles, company_id em todas as tabelas,
+-- RLS por empresa e as mudanças em supabase/migrations/.
+-- Mantido apenas como histórico.
+-- ============================================================
 -- SCHEMA COMPLETO - SUCATA CURIÓ
 -- Cole este SQL no Supabase > SQL Editor > New Query > Run
 -- ============================================================
