@@ -127,14 +127,10 @@ export async function createCompra({
 }
 
 export async function deleteCompra(id) {
-  const { error: errFinanceiro } = await supabase
-    .from("financeiro")
-    .delete()
-    .eq("compra_id", id);
-
-  if (errFinanceiro) throw errFinanceiro;
-
-  const { error } = await supabase.from("compras").delete().eq("id", id);
+  // Apaga compra + lançamento financeiro numa única transação no banco.
+  // Se o usuário não tiver permissão, o banco devolve erro explícito
+  // (antes o DELETE bloqueado pelo RLS "passava" sem apagar nada).
+  const { error } = await supabase.rpc("excluir_compra", { p_compra_id: id });
   if (error) throw error;
 }
 

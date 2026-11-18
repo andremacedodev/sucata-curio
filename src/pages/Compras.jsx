@@ -8,6 +8,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { getCompras, deleteCompra } from "../lib/db";
+import { useAuth } from "../contexts/AuthContext";
 import { baixarPDF, compartilharWhatsApp } from "../lib/pdf";
 
 function fmt(v) {
@@ -18,6 +19,7 @@ function fmt(v) {
 }
 
 export default function Compras() {
+  const { isAdmin } = useAuth();
   const [compras, setCompras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -235,13 +237,15 @@ export default function Compras() {
                       <MessageCircle className="w-3.5 h-3.5" />
                       WhatsApp
                     </button>
-                    <button
-                      onClick={() => excluir(compra.id)}
-                      className="btn-danger text-xs py-1.5 ml-auto"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Excluir
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => excluir(compra.id)}
+                        className="btn-danger text-xs py-1.5 ml-auto"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Excluir
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
