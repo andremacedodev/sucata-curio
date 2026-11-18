@@ -5,7 +5,7 @@ import { sendPasswordReset, signInWithEmail } from "../lib/authService";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
-  const { isAuthenticated, loading, profile } = useAuth();
+  const { isAuthenticated, loading, role, authError, clearAuthError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,22 +20,21 @@ export default function Login() {
   const from = location.state?.from?.pathname || "/dashboard";
 
   useEffect(() => {
-    if (isAuthenticated && profile) {
-      navigate(profile.role === "ADMIN" ? from : "/nova-compra", {
+    if (isAuthenticated && role) {
+      navigate(role === "ADMIN" ? from : "/nova-compra", {
         replace: true,
       });
     }
-  }, [isAuthenticated, profile, from, navigate]);
+  }, [isAuthenticated, role, from, navigate]);
 
-  if (!loading && isAuthenticated && profile) {
-    return (
-      <Navigate to={profile.role === "ADMIN" ? from : "/nova-compra"} replace />
-    );
+  if (!loading && isAuthenticated && role) {
+    return <Navigate to={role === "ADMIN" ? from : "/nova-compra"} replace />;
   }
 
   async function handleLogin(event) {
     event.preventDefault();
     setError("");
+    clearAuthError();
     setMessage("");
     setSubmitting(true);
 
@@ -86,6 +85,12 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleLogin} className="p-6 space-y-4">
+          {authError && !error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {authError}
+            </div>
+          )}
+
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}

@@ -52,11 +52,12 @@ const navItems = [
 ];
 
 export default function Layout() {
-  const { profile, signOut } = useAuth();
+  const { profile, role, company, signOut } = useAuth();
+  const nomeEmpresa = company?.nome || "";
   const navigate = useNavigate();
 
   const visibleItems = navItems.filter((item) =>
-    item.roles.includes(profile?.role),
+    item.roles.includes(role),
   );
 
   async function handleSignOut() {
@@ -70,14 +71,16 @@ export default function Layout() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Recycle className="w-6 h-6 text-indigo-600" />
-            <span className="font-bold text-gray-900 text-lg">
-              Sucata Curio
+            <span className="font-bold text-gray-900 text-lg truncate">
+              {nomeEmpresa}
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
             {profile?.nome || profile?.email}
           </p>
-          <p className="text-xs text-gray-400">{profile?.role}</p>
+          <p className="text-xs text-gray-400">
+            {role === "ADMIN" ? "Administrador" : "Operador"}
+          </p>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -115,7 +118,9 @@ export default function Layout() {
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Recycle className="w-5 h-5 text-indigo-600" />
-            <span className="font-bold text-gray-900">Sucata Curio</span>
+            <span className="font-bold text-gray-900 truncate">
+              {nomeEmpresa}
+            </span>
           </div>
 
           <button
