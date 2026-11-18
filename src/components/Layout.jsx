@@ -1,10 +1,10 @@
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   BarChart3,
   LayoutDashboard,
   List,
   LogOut,
-  Recycle,
   Settings,
   ShoppingCart,
   TrendingUp,
@@ -51,6 +51,22 @@ const navItems = [
   },
 ];
 
+// Logo da empresa (se cadastrado e carregar); senão, ícone do Peso Certo.
+function LogoEmpresa({ url, className }) {
+  const [falhou, setFalhou] = useState(false);
+  if (url && !falhou) {
+    return (
+      <img
+        src={url}
+        alt=""
+        onError={() => setFalhou(true)}
+        className={`object-contain shrink-0 ${className}`}
+      />
+    );
+  }
+  return <img src="/favicon.svg" alt="" className="h-7 w-7 rounded-md shrink-0" />;
+}
+
 export default function Layout() {
   const { profile, role, company, signOut } = useAuth();
   const nomeEmpresa = company?.nome || "";
@@ -69,8 +85,8 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col lg:flex-row bg-gray-50">
       <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-200 min-h-screen">
         <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <Recycle className="w-6 h-6 text-indigo-600" />
+          <div className="flex items-center gap-2 min-w-0">
+            <LogoEmpresa url={company?.logo_url} className="h-8 max-w-[72px]" />
             <span className="font-bold text-gray-900 text-lg truncate">
               {nomeEmpresa}
             </span>
@@ -116,8 +132,8 @@ export default function Layout() {
 
       <main className="flex-1 flex flex-col min-h-screen">
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Recycle className="w-5 h-5 text-indigo-600" />
+          <div className="flex items-center gap-2 min-w-0">
+            <LogoEmpresa url={company?.logo_url} className="h-7 max-w-[64px]" />
             <span className="font-bold text-gray-900 truncate">
               {nomeEmpresa}
             </span>

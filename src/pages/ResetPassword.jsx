@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Recycle } from "lucide-react";
+import { Lock } from "lucide-react";
 import { updateUserPassword } from "../lib/authService";
 
 export default function ResetPassword() {
@@ -41,9 +41,11 @@ export default function ResetPassword() {
       <section className="w-full max-w-md bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
         <div className="px-6 pt-7 pb-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Recycle className="h-6 w-6 text-white" />
-            </div>
+            <img
+              src="/favicon.svg"
+              alt=""
+              className="h-11 w-11 rounded-lg shrink-0"
+            />
             <div>
               <h1 className="text-xl font-bold text-gray-900">Nova senha</h1>
               <p className="text-sm text-gray-500">

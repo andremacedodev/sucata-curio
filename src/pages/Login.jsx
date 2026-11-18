@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, Recycle } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { sendPasswordReset, signInWithEmail } from "../lib/authService";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -74,12 +74,14 @@ export default function Login() {
       <section className="w-full max-w-md bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
         <div className="px-6 pt-7 pb-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Recycle className="h-6 w-6 text-white" />
-            </div>
+            <img
+              src="/favicon.svg"
+              alt=""
+              className="h-11 w-11 rounded-lg shrink-0"
+            />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Sucata Curio</h1>
-              <p className="text-sm text-gray-500">Acesso ao sistema</p>
+              <h1 className="text-xl font-bold text-gray-900">Peso Certo</h1>
+              <p className="text-sm text-gray-500">Gestão para sucatarias</p>
             </div>
           </div>
         </div>
