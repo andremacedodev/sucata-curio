@@ -167,29 +167,26 @@ export default function Financeiro() {
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Financeiro</h1>
 
-      {/* Cards resumo */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card p-3 text-center">
-          <TrendingUp className="w-4 h-4 text-green-500 mx-auto mb-1" />
-          <p className="text-xs text-gray-500">Entradas</p>
-          <p className="font-bold text-green-600 text-sm">
-            {fmt(totalEntradas)}
-          </p>
-        </div>
-        <div className="card p-3 text-center">
-          <TrendingDown className="w-4 h-4 text-red-500 mx-auto mb-1" />
-          <p className="text-xs text-gray-500">Saídas</p>
-          <p className="font-bold text-red-600 text-sm">{fmt(totalSaidas)}</p>
-        </div>
-        <div className="card p-3 text-center">
-          <DollarSign className="w-4 h-4 text-indigo-500 mx-auto mb-1" />
-          <p className="text-xs text-gray-500">Saldo</p>
-          <p
-            className={`font-bold text-sm ${saldo >= 0 ? "text-indigo-600" : "text-red-600"}`}
+      {/* Cards resumo — celular: linhas; tela maior: 3 colunas */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+        {[
+          { label: "Entradas", valor: totalEntradas, Icon: TrendingUp, cor: "text-green-600", corIcone: "text-green-500" },
+          { label: "Saídas", valor: totalSaidas, Icon: TrendingDown, cor: "text-red-600", corIcone: "text-red-500" },
+          { label: "Saldo", valor: saldo, Icon: DollarSign, cor: saldo >= 0 ? "text-indigo-600" : "text-red-600", corIcone: "text-indigo-500" },
+        ].map(({ label, valor, Icon, cor, corIcone }) => (
+          <div
+            key={label}
+            className="card px-4 py-3 flex items-center justify-between gap-3 sm:flex-col sm:justify-center sm:gap-1 sm:text-center"
           >
-            {fmt(saldo)}
-          </p>
-        </div>
+            <div className="flex items-center gap-2 sm:flex-col sm:gap-1">
+              <Icon className={`w-4 h-4 shrink-0 ${corIcone}`} />
+              <p className="text-xs text-gray-500">{label}</p>
+            </div>
+            <p className={`valor font-bold text-base sm:text-sm lg:text-base ${cor}`}>
+              {fmt(valor)}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Filtro de período */}
@@ -198,31 +195,33 @@ export default function Financeiro() {
           <button
             type="button"
             onClick={() => aplicarPeriodo("ontem")}
-            className="px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
           >
             Ontem
           </button>
           <button
             type="button"
             onClick={() => aplicarPeriodo("semana")}
-            className="px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
           >
             Semana atual
           </button>
           <button
             type="button"
             onClick={() => moverSemana(-7)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
+            title="Semana anterior"
           >
             <ChevronLeft className="w-4 h-4" />
-            Semana anterior
+            Anterior
           </button>
           <button
             type="button"
             onClick={() => moverSemana(7)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
+            title="Próxima semana"
           >
-            Semana seguinte
+            Próxima
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
@@ -296,13 +295,13 @@ export default function Financeiro() {
               {registros.map((r) => (
                 <div
                   key={r.id}
-                  className="px-4 py-3 flex items-center justify-between"
+                  className="px-4 py-3 flex items-center justify-between gap-3"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2 break-words">
                       {r.descricao}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 truncate">
                       {r.categoria} ·{" "}
                       {new Date(r.data_hora).toLocaleString("pt-BR", {
                         day: "2-digit",
@@ -313,7 +312,7 @@ export default function Financeiro() {
                     </p>
                   </div>
                   <span
-                    className={`font-bold ${r.tipo === "entrada" ? "text-green-600" : "text-red-600"}`}
+                    className={`valor font-bold text-sm sm:text-base ${r.tipo === "entrada" ? "text-green-600" : "text-red-600"}`}
                   >
                     {r.tipo === "entrada" ? "+" : "-"}
                     {fmt(r.valor)}

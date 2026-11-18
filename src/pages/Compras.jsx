@@ -10,6 +10,7 @@ import {
 import { getCompras, deleteCompra } from "../lib/db";
 import { inicioDoDiaISO, fimDoDiaISO } from "../lib/datas";
 import { useAuth } from "../contexts/AuthContext";
+import { fmtKg } from "../lib/formato";
 import { baixarPDF, compartilharWhatsApp } from "../lib/pdf";
 
 function fmt(v) {
@@ -82,7 +83,7 @@ export default function Compras() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             className="input pl-9"
-            placeholder="Buscar por recibo, cliente ou material..."
+            placeholder="Buscar recibo, cliente ou material"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -134,14 +135,14 @@ export default function Compras() {
             <div key={compra.id} className="card overflow-hidden">
               {/* Cabeçalho do card */}
               <button
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors"
                 onClick={() =>
                   setExpandida(expandida === compra.id ? null : compra.id)
                 }
               >
-                <div className="flex items-center gap-3 text-left">
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">
+                <div className="flex items-center gap-3 text-left min-w-0 flex-1">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm truncate">
                       #{String(compra.numero_recibo).padStart(4, "0")}
                       {compra.cliente_nome && (
                         <span className="text-gray-500 font-normal">
@@ -163,8 +164,8 @@ export default function Compras() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-gray-900">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="valor font-bold text-gray-900 text-sm sm:text-base">
                     {fmt(compra.valor_total)}
                   </span>
                   {expandida === compra.id ? (
@@ -179,42 +180,26 @@ export default function Compras() {
               {expandida === compra.id && (
                 <div className="border-t border-gray-100">
                   {/* Itens */}
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">
-                          Material
-                        </th>
-                        <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">
-                          Peso
-                        </th>
-                        <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">
-                          R$/kg
-                        </th>
-                        <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">
-                          Total
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {compra.itens_compra?.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-2 font-medium">
+                  <div className="divide-y divide-gray-100">
+                    {compra.itens_compra?.map((item) => (
+                      <div
+                        key={item.id}
+                        className="px-4 py-2 flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
                             {item.material_nome}
-                          </td>
-                          <td className="px-4 py-2 text-right text-gray-600">
-                            {Number(item.peso_kg).toFixed(3)} kg
-                          </td>
-                          <td className="px-4 py-2 text-right text-gray-600">
-                            {fmt(item.preco_por_kg)}
-                          </td>
-                          <td className="px-4 py-2 text-right font-bold">
-                            {fmt(item.valor_total)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </p>
+                          <p className="valor text-xs text-gray-500">
+                            {fmtKg(item.peso_kg)} × {fmt(item.preco_por_kg)}/kg
+                          </p>
+                        </div>
+                        <span className="valor text-sm font-bold text-gray-900">
+                          {fmt(item.valor_total)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
 
                   {compra.observacoes && (
                     <p className="px-4 py-2 text-xs text-gray-500 italic border-t border-gray-100">

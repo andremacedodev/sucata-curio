@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getComprasPorMaterial, getFinanceiro } from "../lib/db";
 import { paraDataInput, inicioDoDiaISO, fimDoDiaISO } from "../lib/datas";
+import { fmtKg as fmtKgBR, fmtValorCurto } from "../lib/formato";
 import {
   BarChart,
   Bar,
@@ -23,7 +24,7 @@ function fmt(v) {
 }
 
 function fmtKg(v) {
-  return Number(v || 0).toFixed(1) + " kg";
+  return fmtKgBR(v, 1);
 }
 
 const CORES = [
@@ -170,7 +171,7 @@ export default function Relatorios() {
 
       {/* Seletor de período */}
       <div className="space-y-3">
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
+        <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
           {PERIODOS.map((p, i) => (
             <button
               key={i}
@@ -180,7 +181,7 @@ export default function Relatorios() {
                 setDataInicio("");
                 setDataFim("");
               }}
-              className={`flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`min-w-0 px-1 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                 periodo === i && !dataInicio && !dataFim
                   ? "bg-white text-gray-900 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -195,31 +196,33 @@ export default function Relatorios() {
           <button
             type="button"
             onClick={() => aplicarPeriodo(0)}
-            className="px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
           >
             Ontem
           </button>
           <button
             type="button"
             onClick={() => aplicarPeriodo(7)}
-            className="px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
           >
             Semana atual
           </button>
           <button
             type="button"
             onClick={() => moverSemana(-7)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
+            title="Semana anterior"
           >
             <ChevronLeft className="w-4 h-4" />
-            Semana anterior
+            Anterior
           </button>
           <button
             type="button"
             onClick={() => moverSemana(7)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+            className="chip"
+            title="Próxima semana"
           >
-            Semana seguinte
+            Próxima
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
@@ -229,11 +232,11 @@ export default function Relatorios() {
               setDataFim("");
               setPeriodo(1);
             }}
-            className="px-3 py-2 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            className="px-3 py-2 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 whitespace-nowrap"
           >
-            Limpar filtros
+            Limpar
           </button>
-          <div className="grid grid-cols-2 gap-3 flex-1 min-w-[240px]">
+          <div className="grid grid-cols-2 gap-3 w-full sm:flex-1 sm:w-auto sm:min-w-[240px]">
             <div>
               <label className="label text-xs">De</label>
               <input
@@ -272,28 +275,28 @@ export default function Relatorios() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="card p-3 text-center">
               <p className="text-xs text-gray-500">Gastos</p>
-              <p className="font-bold text-red-600 text-sm mt-1">
+              <p className="font-bold text-red-600 text-sm mt-1 valor">
                 {fmt(totalSaidas)}
               </p>
             </div>
             <div className="card p-3 text-center">
               <p className="text-xs text-gray-500">Receitas</p>
-              <p className="font-bold text-green-600 text-sm mt-1">
+              <p className="font-bold text-green-600 text-sm mt-1 valor">
                 {fmt(totalEntradas)}
               </p>
             </div>
             <div className="card p-3 text-center">
               <p className="text-xs text-gray-500">Resultado</p>
               <p
-                className={`font-bold text-sm mt-1 ${totalEntradas - totalSaidas >= 0 ? "text-indigo-600" : "text-red-600"}`}
+                className={`valor font-bold text-sm mt-1 ${totalEntradas - totalSaidas >= 0 ? "text-indigo-600" : "text-red-600"}`}
               >
                 {fmt(totalEntradas - totalSaidas)}
               </p>
             </div>
             <div className="card p-3 text-center md:col-span-2 xl:col-span-1">
               <p className="text-xs text-gray-500">KG comprado</p>
-              <p className="font-bold text-indigo-600 text-sm mt-1">
-                {totalKgComprado.toFixed(1)} kg
+              <p className="font-bold text-indigo-600 text-sm mt-1 valor">
+                {fmtKg(totalKgComprado)}
               </p>
             </div>
           </div>
@@ -303,7 +306,7 @@ export default function Relatorios() {
             <div className="card">
               <div className="card-header">
                 <h2 className="font-semibold text-gray-900 text-sm">
-                  Top materiais por valor pago
+                  Top materiais por valor pago (R$)
                 </h2>
               </div>
               <div className="p-4">
@@ -312,10 +315,16 @@ export default function Relatorios() {
                     data={top5}
                     margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
                   >
-                    <XAxis dataKey="material" tick={{ fontSize: 11 }} />
+                    <XAxis
+                      dataKey="material"
+                      tick={{ fontSize: 10 }}
+                      interval={0}
+                      tickFormatter={(n) => (n.length > 10 ? n.slice(0, 9) + "…" : n)}
+                    />
                     <YAxis
-                      tick={{ fontSize: 11 }}
-                      tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                      width={48}
+                      tick={{ fontSize: 10 }}
+                      tickFormatter={fmtValorCurto}
                     />
                     <Tooltip
                       formatter={(v) => [fmt(v), "Total pago"]}
@@ -370,54 +379,32 @@ export default function Relatorios() {
                 Entradas detalhadas
               </h2>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">
-                      Descrição
-                    </th>
-                    <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">
-                      Categoria
-                    </th>
-                    <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">
-                      Data
-                    </th>
-                    <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">
-                      Valor
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {entradasDetalhadas.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="px-4 py-6 text-center text-sm text-gray-400"
-                      >
-                        Nenhuma entrada no período.
-                      </td>
-                    </tr>
-                  ) : (
-                    entradasDetalhadas.map((r) => (
-                      <tr key={r.id}>
-                        <td className="px-4 py-2 text-gray-700">
-                          {r.descricao}
-                        </td>
-                        <td className="px-4 py-2 text-gray-600">
-                          {r.categoria}
-                        </td>
-                        <td className="px-4 py-2 text-right text-gray-600">
-                          {new Date(r.data_hora).toLocaleDateString("pt-BR")}
-                        </td>
-                        <td className="px-4 py-2 text-right font-bold text-green-600">
-                          {fmt(r.valor)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            <div className="divide-y divide-gray-100">
+              {entradasDetalhadas.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-gray-400">
+                  Nenhuma entrada no período.
+                </p>
+              ) : (
+                entradasDetalhadas.map((r) => (
+                  <div
+                    key={r.id}
+                    className="px-4 py-2.5 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-gray-700 line-clamp-2 break-words">
+                        {r.descricao}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {r.categoria} ·{" "}
+                        {new Date(r.data_hora).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <span className="valor text-sm font-bold text-green-600">
+                      {fmt(r.valor)}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -442,7 +429,7 @@ export default function Relatorios() {
                       <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">
                         Valor pago
                       </th>
-                      <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">
+                      <th className="hidden sm:table-cell text-right px-4 py-2 text-xs text-gray-500 font-medium">
                         Qtd recibos
                       </th>
                     </tr>
@@ -450,7 +437,7 @@ export default function Relatorios() {
                   <tbody className="divide-y divide-gray-100">
                     {porMaterial.map((m, i) => (
                       <tr key={m.material}>
-                        <td className="px-4 py-2.5">
+                        <td className="px-3 sm:px-4 py-2.5">
                           <div className="flex items-center gap-2">
                             <div
                               className="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -459,13 +446,13 @@ export default function Relatorios() {
                             {m.material}
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-right text-gray-600">
+                        <td className="valor px-3 sm:px-4 py-2.5 text-right text-gray-600">
                           {fmtKg(m.totalKg)}
                         </td>
-                        <td className="px-4 py-2.5 text-right font-bold">
+                        <td className="valor px-3 sm:px-4 py-2.5 text-right font-bold">
                           {fmt(m.totalReais)}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-gray-500">
+                        <td className="hidden sm:table-cell px-4 py-2.5 text-right text-gray-500">
                           {m.qtd}x
                         </td>
                       </tr>
