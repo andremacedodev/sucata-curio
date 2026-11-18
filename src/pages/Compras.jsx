@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search,
   Printer,
@@ -6,12 +6,15 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
-import { getCompras, deleteCompra } from "../lib/db";
+import { buscarCompras, deleteCompra } from "../lib/db";
 import { inicioDoDiaISO, fimDoDiaISO } from "../lib/datas";
 import { useAuth } from "../contexts/AuthContext";
 import { fmtKg } from "../lib/formato";
 import { baixarPDF, compartilharWhatsApp } from "../lib/pdf";
+
+const POR_PAGINA = 30;
 
 function fmt(v) {
   return Number(v || 0).toLocaleString("pt-BR", {
@@ -23,32 +26,82 @@ function fmt(v) {
 export default function Compras() {
   const { isAdmin } = useAuth();
   const [compras, setCompras] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [valorTotal, setValorTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [carregandoMais, setCarregandoMais] = useState(false);
+  const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
+  const [buscaAplicada, setBuscaAplicada] = useState("");
   const [expandida, setExpandida] = useState(null);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  // Descarta respostas antigas quando o filtro muda no meio do carregamento
+  const requisicaoAtual = useRef(0);
 
-  async function carregar() {
+  // Espera a pessoa parar de digitar (400 ms) antes de buscar no banco
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaAplicada(busca.trim()), 400);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  function filtros(offset) {
+    return {
+      busca: buscaAplicada,
+      dataInicio: dataInicio ? inicioDoDiaISO(dataInicio) : null,
+      dataFim: dataFim ? fimDoDiaISO(dataFim) : null,
+      limite: POR_PAGINA,
+      offset,
+    };
+  }
+
+  // Primeira página sempre que busca ou datas mudam
+  useEffect(() => {
+    const id = ++requisicaoAtual.current;
     setLoading(true);
+    setErro("");
+    setExpandida(null);
+    buscarCompras(filtros(0))
+      .then((r) => {
+        if (id !== requisicaoAtual.current) return;
+        setCompras(r.compras);
+        setTotal(r.total);
+        setValorTotal(r.valorTotal);
+      })
+      .catch((e) => {
+        if (id !== requisicaoAtual.current) return;
+        setCompras([]);
+        setTotal(0);
+        setValorTotal(0);
+        setErro("Erro ao carregar o histórico: " + e.message);
+      })
+      .finally(() => {
+        if (id === requisicaoAtual.current) setLoading(false);
+      });
+  }, [buscaAplicada, dataInicio, dataFim]);
+
+  async function carregarMais() {
+    const id = requisicaoAtual.current;
+    setCarregandoMais(true);
+    setErro("");
     try {
-      const filtros = {};
-      if (dataInicio) filtros.dataInicio = inicioDoDiaISO(dataInicio);
-      if (dataFim) filtros.dataFim = fimDoDiaISO(dataFim);
-      const data = await getCompras({ ...filtros, limit: 100 });
-      setCompras(data);
+      const r = await buscarCompras(filtros(compras.length));
+      if (id !== requisicaoAtual.current) return;
+      // Evita duplicar se uma compra nova entrou entre uma página e outra
+      setCompras((prev) => {
+        const ids = new Set(prev.map((c) => c.id));
+        return [...prev, ...r.compras.filter((c) => !ids.has(c.id))];
+      });
+      setTotal(r.total);
+      setValorTotal(r.valorTotal);
     } catch (e) {
-      console.error(e);
+      setErro("Erro ao carregar mais compras: " + e.message);
     } finally {
-      setLoading(false);
+      setCarregandoMais(false);
     }
   }
 
-  useEffect(() => {
-    carregar();
-  }, [dataInicio, dataFim]);
-
-  async function excluir(id) {
+  async function excluir(compra) {
     if (
       !confirm(
         "Excluir esta compra? O registro financeiro também será removido.",
@@ -56,22 +109,17 @@ export default function Compras() {
     )
       return;
     try {
-      await deleteCompra(id);
-      setCompras((prev) => prev.filter((c) => c.id !== id));
+      await deleteCompra(compra.id);
+      setCompras((prev) => prev.filter((c) => c.id !== compra.id));
+      setTotal((t) => Math.max(0, t - 1));
+      setValorTotal((v) => v - Number(compra.valor_total || 0));
     } catch (e) {
       alert("Erro ao excluir: " + e.message);
     }
   }
 
-  const filtradas = compras.filter((c) => {
-    if (!busca) return true;
-    const b = busca.toLowerCase();
-    return (
-      String(c.numero_recibo).includes(b) ||
-      (c.cliente_nome || "").toLowerCase().includes(b) ||
-      c.itens_compra?.some((i) => i.material_nome.toLowerCase().includes(b))
-    );
-  });
+  const temFiltro = Boolean(busca || dataInicio || dataFim);
+  const faltam = total - compras.length;
 
   return (
     <div className="space-y-4">
@@ -82,11 +130,23 @@ export default function Compras() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
-            className="input pl-9"
-            placeholder="Buscar recibo, cliente ou material"
+            className="input pl-9 pr-9"
+            type="search"
+            enterKeyHint="search"
+            placeholder="Recibo, cliente ou material"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+              aria-label="Limpar busca"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -110,14 +170,38 @@ export default function Compras() {
         </div>
       </div>
 
-      {/* Contagem */}
-      <p className="text-sm text-gray-500">
-        {filtradas.length} {filtradas.length === 1 ? "compra" : "compras"}{" "}
-        encontradas · Total:{" "}
-        <strong>
-          {fmt(filtradas.reduce((s, c) => s + Number(c.valor_total), 0))}
-        </strong>
-      </p>
+      {/* Contagem (considera todas as encontradas, não só as carregadas) */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-gray-500">
+          {loading ? (
+            "Buscando..."
+          ) : (
+            <>
+              {total} {total === 1 ? "compra encontrada" : "compras encontradas"}{" "}
+              · Total: <strong className="valor">{fmt(valorTotal)}</strong>
+            </>
+          )}
+        </p>
+        {temFiltro && (
+          <button
+            type="button"
+            onClick={() => {
+              setBusca("");
+              setDataInicio("");
+              setDataFim("");
+            }}
+            className="text-sm text-indigo-600 font-medium"
+          >
+            Limpar filtros
+          </button>
+        )}
+      </div>
+
+      {erro && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          {erro}
+        </div>
+      )}
 
       {/* Lista */}
       {loading ? (
@@ -126,12 +210,14 @@ export default function Compras() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtradas.length === 0 && (
+          {compras.length === 0 && !erro && (
             <div className="card p-8 text-center text-gray-400 text-sm">
-              Nenhuma compra encontrada.
+              {temFiltro
+                ? "Nenhuma compra encontrada com esses filtros."
+                : "Nenhuma compra registrada ainda."}
             </div>
           )}
-          {filtradas.map((compra) => (
+          {compras.map((compra) => (
             <div key={compra.id} className="card overflow-hidden">
               {/* Cabeçalho do card */}
               <button
@@ -225,7 +311,7 @@ export default function Compras() {
                     </button>
                     {isAdmin && (
                       <button
-                        onClick={() => excluir(compra.id)}
+                        onClick={() => excluir(compra)}
                         className="btn-danger text-xs py-1.5 ml-auto"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -237,6 +323,24 @@ export default function Compras() {
               )}
             </div>
           ))}
+
+          {faltam > 0 && (
+            <button
+              type="button"
+              onClick={carregarMais}
+              disabled={carregandoMais}
+              className="btn-secondary w-full justify-center py-3"
+            >
+              {carregandoMais
+                ? "Carregando..."
+                : `Carregar mais (${Math.min(faltam, POR_PAGINA)} de ${faltam} restantes)`}
+            </button>
+          )}
+          {faltam <= 0 && compras.length > POR_PAGINA && (
+            <p className="text-center text-xs text-gray-400 py-2">
+              Todas as {total} compras foram carregadas.
+            </p>
+          )}
         </div>
       )}
     </div>

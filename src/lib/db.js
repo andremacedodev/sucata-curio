@@ -92,6 +92,32 @@ export async function getCompras({ dataInicio, dataFim, limit = 50 } = {}) {
   return data;
 }
 
+// Histórico: busca no banco (recibo, cliente ou material) sobre TODAS as
+// compras da empresa, uma página por vez.
+// Retorna { total, valorTotal, compras } — total e valorTotal consideram
+// todas as compras encontradas, não só a página.
+export async function buscarCompras({
+  busca = "",
+  dataInicio = null,
+  dataFim = null,
+  limite = 30,
+  offset = 0,
+} = {}) {
+  const { data, error } = await supabase.rpc("buscar_compras", {
+    p_busca: busca || null,
+    p_inicio: dataInicio,
+    p_fim: dataFim,
+    p_limite: limite,
+    p_offset: offset,
+  });
+  if (error) throw error;
+  return {
+    total: Number(data?.total || 0),
+    valorTotal: Number(data?.valor_total || 0),
+    compras: data?.compras || [],
+  };
+}
+
 export async function getCompraById(id) {
   const { data, error } = await supabase
     .from("compras")
