@@ -17,7 +17,9 @@
 // nome "convidar-membro", colar este arquivo. Ou: supabase functions deploy convidar-membro
 // ============================================================
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+// Versão fixa: "@2" pega sempre a mais nova, e uma publicação quebrada no npm
+// (2.119.1, em 18/11/2026) impediu o deploy. Atualize só de propósito.
+import { createClient } from "npm:@supabase/supabase-js@2.119.0";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
