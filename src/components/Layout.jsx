@@ -21,12 +21,13 @@ const navItems = [
   {
     to: "/nova-compra",
     label: "Nova Compra",
+    curto: "Comprar",
     icon: ShoppingCart,
     roles: ["ADMIN", "OPERADOR"],
   },
   {
     to: "/compras",
-    label: "Historico",
+    label: "Histórico",
     icon: List,
     roles: ["ADMIN", "OPERADOR"],
   },
@@ -38,7 +39,7 @@ const navItems = [
   },
   {
     to: "/relatorios",
-    label: "Relatorios",
+    label: "Relatórios",
     icon: BarChart3,
     roles: ["ADMIN"],
   },
@@ -132,19 +133,24 @@ export default function Layout() {
         </div>
       </main>
 
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50">
-        {visibleItems.map(({ to, label, icon: Icon }) => (
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {visibleItems.map(({ to, label, curto, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center py-2 text-xs font-medium transition-colors ${
+              `flex-1 min-w-0 flex flex-col items-center py-2 text-[10px] sm:text-xs font-medium transition-colors ${
                 isActive ? "text-indigo-600" : "text-gray-500"
               }`
             }
           >
-            <Icon className="w-5 h-5 mb-0.5" />
-            <span className="truncate w-full text-center px-0.5">{label}</span>
+            <Icon className="w-5 h-5 mb-0.5 shrink-0" />
+            <span className="truncate w-full text-center px-0.5">
+              {curto || label}
+            </span>
           </NavLink>
         ))}
       </nav>

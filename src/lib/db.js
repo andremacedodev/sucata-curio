@@ -14,6 +14,25 @@ export async function getMateriais() {
   return data;
 }
 
+// Quantas vezes cada material aparece nas compras mais recentes da empresa.
+// Usa os últimos 1000 itens: reflete o que o pátio compra HOJE, não há anos.
+// Retorna { [material_id]: quantidade }.
+export async function getFrequenciaMateriais(limite = 1000) {
+  const { data, error } = await supabase
+    .from("itens_compra")
+    .select("material_id")
+    .not("material_id", "is", null)
+    .order("criado_em", { ascending: false })
+    .limit(limite);
+  if (error) throw error;
+
+  const freq = {};
+  for (const { material_id } of data) {
+    freq[material_id] = (freq[material_id] || 0) + 1;
+  }
+  return freq;
+}
+
 export async function createMaterial(nome, preco_padrao_kg = null) {
   const { data, error } = await supabase
     .from("materiais")

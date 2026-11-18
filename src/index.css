@@ -31,7 +31,15 @@
     @apply block text-sm font-medium text-gray-700 mb-1;
   }
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm min-w-0;
+  }
+  /* Valores em R$ / kg: nunca quebram linha (evita "-" sozinho em cima do "R$")
+     e usam algarismos de largura fixa para alinhar. */
+  .valor {
+    @apply whitespace-nowrap tabular-nums;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 whitespace-nowrap;
   }
   .card-header {
     @apply px-4 py-3 border-b border-gray-100 flex items-center justify-between;

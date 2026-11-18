@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -7,7 +7,12 @@ import {
   Printer,
   MessageCircle,
 } from "lucide-react";
-import { getMateriais, createCompra, getCompraById } from "../lib/db";
+import {
+  getMateriais,
+  getFrequenciaMateriais,
+  createCompra,
+  getCompraById,
+} from "../lib/db";
 import { baixarPDF, compartilharWhatsApp } from "../lib/pdf";
 
 function fmt(v) {
@@ -16,6 +21,9 @@ function fmt(v) {
     currency: "BRL",
   });
 }
+
+// Quantos materiais aparecem no grupo "Mais comprados" do seletor
+const QTD_MAIS_COMPRADOS = 8;
 
 const itemVazio = () => ({
   id: Date.now(),
@@ -29,6 +37,8 @@ const itemVazio = () => ({
 export default function NovaCompra() {
   const navigate = useNavigate();
   const [materiais, setMateriais] = useState([]);
+  const [frequencia, setFrequencia] = useState({});
+  const [avisoOrdem, setAvisoOrdem] = useState("");
   const [itens, setItens] = useState([itemVazio()]);
   const [clienteNome, setClienteNome] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
@@ -41,7 +51,34 @@ export default function NovaCompra() {
     getMateriais()
       .then(setMateriais)
       .catch((e) => setErro("Erro ao carregar materiais: " + e.message));
+
+    // Falha aqui não impede a compra: a lista só fica em ordem alfabética.
+    getFrequenciaMateriais()
+      .then(setFrequencia)
+      .catch((e) =>
+        setAvisoOrdem(
+          "Lista em ordem alfabética (não foi possível carregar os mais comprados: " +
+            e.message +
+            ")",
+        ),
+      );
   }, []);
+
+  // Separa os materiais mais comprados (topo da lista) dos demais (A–Z)
+  const { maisComprados, outros } = useMemo(() => {
+    const comCompra = materiais
+      .filter((m) => frequencia[m.id] > 0)
+      .sort(
+        (a, b) =>
+          frequencia[b.id] - frequencia[a.id] || a.nome.localeCompare(b.nome),
+      )
+      .slice(0, QTD_MAIS_COMPRADOS);
+    const idsTopo = new Set(comCompra.map((m) => m.id));
+    return {
+      maisComprados: comCompra,
+      outros: materiais.filter((m) => !idsTopo.has(m.id)),
+    };
+  }, [materiais, frequencia]);
 
   function atualizarItem(id, campo, valor) {
     setItens((prev) =>
@@ -209,10 +246,15 @@ export default function NovaCompra() {
       {/* Itens */}
       <div className="card">
         <div className="card-header">
-          <h2 className="font-semibold text-gray-700 text-sm">Materiais</h2>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-gray-700 text-sm">Materiais</h2>
+            {avisoOrdem && (
+              <p className="text-xs text-amber-600 mt-0.5">{avisoOrdem}</p>
+            )}
+          </div>
           <button
             onClick={adicionarItem}
-            className="btn-secondary text-xs py-1 px-2"
+            className="btn-secondary text-xs py-1 px-2 shrink-0"
           >
             <Plus className="w-3 h-3" />
             Adicionar
@@ -222,28 +264,47 @@ export default function NovaCompra() {
           {itens.map((item, idx) => (
             <div key={item.id} className="p-3 space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-400 w-5">
+                <span className="text-xs font-bold text-gray-400 w-5 shrink-0">
                   {idx + 1}
                 </span>
                 {/* Select de material */}
                 <select
-                  className="input flex-1"
+                  className="input flex-1 min-w-0"
                   value={item.material_id}
                   onChange={(e) =>
                     atualizarItem(item.id, "material_id", e.target.value)
                   }
                 >
                   <option value="">Selecionar...</option>
-                  {materiais.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.nome}
-                    </option>
-                  ))}
+                  {maisComprados.length > 0 ? (
+                    <>
+                      <optgroup label="Mais comprados">
+                        {maisComprados.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.nome}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Outros materiais">
+                        {outros.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.nome}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </>
+                  ) : (
+                    materiais.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome}
+                      </option>
+                    ))
+                  )}
                 </select>
                 {/* Ou digitar manualmente */}
                 {!item.material_id && (
                   <input
-                    className="input w-32"
+                    className="input w-28 sm:w-40 shrink-0"
                     placeholder="Ou digite"
                     value={item.material_nome}
                     onChange={(e) =>
@@ -254,15 +315,15 @@ export default function NovaCompra() {
                 <button
                   onClick={() => removerItem(item.id)}
                   disabled={itens.length === 1}
-                  className="p-1.5 text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
+                  className="p-1.5 shrink-0 text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Peso e preço */}
-              <div className="flex gap-2 ml-7">
-                <div className="flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:ml-7">
+                <div className="min-w-0">
                   <label className="label text-xs">Peso (kg)</label>
                   <input
                     type="number"
@@ -277,7 +338,7 @@ export default function NovaCompra() {
                     }
                   />
                 </div>
-                <div className="flex-1">
+                <div className="min-w-0">
                   <label className="label text-xs">R$/kg</label>
                   <input
                     type="number"
@@ -292,9 +353,9 @@ export default function NovaCompra() {
                     }
                   />
                 </div>
-                <div className="flex-1">
+                <div className="col-span-2 sm:col-span-1 min-w-0">
                   <label className="label text-xs">Total</label>
-                  <div className="input bg-gray-50 text-lg font-bold text-indigo-600 cursor-default">
+                  <div className="input valor bg-gray-50 text-lg font-bold text-indigo-600 cursor-default overflow-hidden text-ellipsis">
                     {fmt(item.valor_total)}
                   </div>
                 </div>
@@ -317,17 +378,25 @@ export default function NovaCompra() {
       </div>
 
       {/* Total e salvar */}
-      <div className="card p-4 flex items-center justify-between gap-4 sticky bottom-20 lg:bottom-4 shadow-lg">
-        <div>
+      <div className="card p-4 flex items-center justify-between gap-3 sticky bottom-20 lg:bottom-4 shadow-lg">
+        <div className="min-w-0">
           <p className="text-xs text-gray-500">TOTAL A PAGAR</p>
-          <p className="text-3xl font-bold text-gray-900">{fmt(totalGeral)}</p>
+          <p className="valor text-xl sm:text-3xl font-bold text-gray-900">
+            {fmt(totalGeral)}
+          </p>
         </div>
         <button
           onClick={salvarCompra}
           disabled={!podeSalvar || salvando}
-          className="btn-primary py-4 px-8 text-base"
+          className="btn-primary py-4 px-5 sm:px-8 text-base shrink-0 whitespace-nowrap"
         >
-          {salvando ? "Salvando..." : "Salvar Compra"}
+          {salvando ? (
+            "Salvando..."
+          ) : (
+            <>
+              Salvar<span className="hidden sm:inline"> Compra</span>
+            </>
+          )}
         </button>
       </div>
 

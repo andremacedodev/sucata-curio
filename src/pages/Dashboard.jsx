@@ -18,20 +18,30 @@ function fmt(valor) {
 }
 
 function MetricCard({ label, valor, icon: Icon, cor, sub }) {
+  const fundo =
+    cor === "text-green-600"
+      ? "bg-green-50"
+      : cor === "text-red-600"
+        ? "bg-red-50"
+        : "bg-indigo-50";
+
+  // Celular: linha (ícone | rótulo | valor). Tela maior: card vertical.
   return (
-    <div className="card p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-gray-500 font-medium">{label}</p>
-          <p className={`text-2xl font-bold mt-1 ${cor}`}>{fmt(valor)}</p>
-          {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-        </div>
-        <div
-          className={`p-2 rounded-lg ${cor === "text-green-600" ? "bg-green-50" : cor === "text-red-600" ? "bg-red-50" : "bg-indigo-50"}`}
-        >
-          <Icon className={`w-5 h-5 ${cor}`} />
-        </div>
+    <div className="card p-4 flex items-center gap-3 sm:flex-col sm:items-start">
+      <div className={`p-2 rounded-lg shrink-0 ${fundo}`}>
+        <Icon className={`w-5 h-5 ${cor}`} />
       </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-gray-500 font-medium leading-tight">
+          {label}
+        </p>
+        {sub && (
+          <p className="text-xs text-gray-400 leading-tight mt-0.5">{sub}</p>
+        )}
+      </div>
+      <p className={`valor text-lg lg:text-xl font-bold ${cor}`}>
+        {fmt(valor)}
+      </p>
     </div>
   );
 }
@@ -86,12 +96,12 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Topo */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 capitalize">{hoje}</p>
         </div>
-        <Link to="/nova-compra" className="btn-primary">
+        <Link to="/nova-compra" className="btn-primary shrink-0 whitespace-nowrap">
           <Plus className="w-4 h-4" />
           Nova Compra
         </Link>
@@ -102,7 +112,7 @@ export default function Dashboard() {
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
           Hoje
         </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <MetricCard
             label="Gasto hoje"
             valor={resumoDia.saidas}
@@ -134,7 +144,7 @@ export default function Dashboard() {
             year: "numeric",
           })}
         </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <MetricCard
             label="Gasto no mês"
             valor={resumoMes.saidas}
@@ -186,10 +196,10 @@ export default function Dashboard() {
           {ultimasCompras.map((compra) => (
             <div
               key={compra.id}
-              className="px-4 py-3 flex items-center justify-between"
+              className="px-4 py-3 flex items-center justify-between gap-3"
             >
-              <div>
-                <p className="text-sm font-medium text-gray-900">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 truncate">
                   Recibo #{String(compra.numero_recibo).padStart(4, "0")}
                   {compra.cliente_nome && (
                     <span className="text-gray-500 font-normal">
@@ -209,7 +219,7 @@ export default function Dashboard() {
                   {compra.itens_compra?.length === 1 ? "item" : "itens"}
                 </p>
               </div>
-              <span className="font-bold text-gray-900">
+              <span className="valor font-bold text-gray-900">
                 {fmt(compra.valor_total)}
               </span>
             </div>
