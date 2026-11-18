@@ -10,6 +10,7 @@ import Financeiro from "./pages/Financeiro";
 import Relatorios from "./pages/Relatorios";
 import Materiais from "./pages/Materiais";
 import Configuracoes from "./pages/Configuracoes";
+import Equipe from "./pages/Equipe";
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/relatorios" element={<Relatorios />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="/equipe" element={<Equipe />} />
         </Route>
       </Route>
 

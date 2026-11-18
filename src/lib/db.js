@@ -468,3 +468,64 @@ async function apagarArquivoLogo(urlPublica) {
     ? "Logo atualizado, mas o arquivo antigo não pôde ser apagado: " + error.message
     : "";
 }
+
+// ============================================================
+// EQUIPE (admin)
+// ============================================================
+
+// Membros da empresa com último acesso e convite pendente.
+export async function listarEquipe(companyId) {
+  const { data, error } = await supabase.rpc("listar_equipe", {
+    p_company_id: companyId,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+// Convite pela Edge Function "convidar-membro" (precisa da chave de serviço,
+// que nunca fica no navegador). Retorna { convidado, reativado }.
+export async function convidarMembro({ companyId, email, nome, role }) {
+  const { data, error } = await supabase.functions.invoke("convidar-membro", {
+    body: {
+      company_id: companyId,
+      email,
+      nome,
+      role,
+      redirect_to: `${window.location.origin}/reset-password`,
+    },
+  });
+
+  if (error) {
+    // A função devolve { erro: "mensagem" }; mostra essa mensagem ao usuário
+    let mensagem = error.message;
+    try {
+      const corpo = await error.context?.json();
+      if (corpo?.erro) mensagem = corpo.erro;
+    } catch {
+      /* resposta sem JSON: fica a mensagem original */
+    }
+    if (/Failed to send a request|FunctionsFetchError/i.test(mensagem)) {
+      mensagem =
+        "Não foi possível falar com o servidor de convites. Verifique se a função 'convidar-membro' foi publicada no Supabase.";
+    }
+    throw new Error(mensagem);
+  }
+  if (data?.erro) throw new Error(data.erro);
+  return data;
+}
+
+// Ativa/desativa ou muda papel. O banco impede deixar a empresa sem admin.
+export async function atualizarMembro(companyId, userId, campos) {
+  const { data, error } = await supabase
+    .from("company_members")
+    .update(campos)
+    .eq("company_id", companyId)
+    .eq("user_id", userId)
+    .select("user_id, role, ativo")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    throw new Error("Não foi possível alterar: apenas o administrador da empresa pode fazer isso.");
+  }
+  return data;
+}

@@ -9,6 +9,7 @@ import {
   Settings,
   ShoppingCart,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -49,6 +50,13 @@ const navItems = [
     label: "Materiais",
     icon: Settings,
     roles: ["ADMIN", "OPERADOR"],
+  },
+  {
+    to: "/equipe",
+    label: "Equipe",
+    icon: Users,
+    roles: ["ADMIN"],
+    mostrarNoCelular: false, // no celular: pela tela de Configurações
   },
   {
     to: "/configuracoes",

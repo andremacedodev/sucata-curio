@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Building2, FileText, ImageUp, Save, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Building2, ChevronRight, FileText, ImageUp, Save, Trash2, Users } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import {
   enviarLogoEmpresa,
@@ -172,6 +173,23 @@ export default function Configuracoes() {
           {aviso}
         </div>
       )}
+
+      {/* Atalho para a equipe */}
+      <Link
+        to="/equipe"
+        className="card card-body flex items-center gap-3 hover:bg-gray-50 transition-colors"
+      >
+        <div className="p-2 rounded-lg bg-indigo-50 shrink-0">
+          <Users className="w-5 h-5 text-indigo-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-gray-700 text-sm">Equipe</p>
+          <p className="text-xs text-gray-500">
+            Convidar operadores, desativar acessos e definir administradores
+          </p>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
+      </Link>
 
       {/* Logo */}
       <div className="card card-body space-y-3">

@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { updateUserPassword } from "../lib/authService";
+import { entrouPorConvite } from "../lib/supabase";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const veioDeConvite = entrouPorConvite;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -20,7 +22,7 @@ export default function ResetPassword() {
     }
 
     if (password !== confirmPassword) {
-      setError("As senhas nao conferem.");
+      setError("As senhas não conferem.");
       return;
     }
 
@@ -30,7 +32,11 @@ export default function ResetPassword() {
       await updateUserPassword(password);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(err.message || "Nao foi possivel atualizar a senha.");
+      setError(
+        /session/i.test(err.message || "")
+          ? "Link expirado ou já utilizado. Peça um novo convite ou use 'Esqueci minha senha' no login."
+          : err.message || "Não foi possível atualizar a senha.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -47,9 +53,13 @@ export default function ResetPassword() {
               className="h-11 w-11 rounded-lg shrink-0"
             />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Nova senha</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                {veioDeConvite ? "Bem-vindo ao Peso Certo" : "Nova senha"}
+              </h1>
               <p className="text-sm text-gray-500">
-                Defina uma senha segura para continuar.
+                {veioDeConvite
+                  ? "Crie sua senha para acessar o sistema."
+                  : "Defina uma senha segura para continuar."}
               </p>
             </div>
           </div>
@@ -103,7 +113,11 @@ export default function ResetPassword() {
             disabled={submitting}
             className="btn-primary w-full justify-center py-3"
           >
-            {submitting ? "Salvando..." : "Salvar nova senha"}
+            {submitting
+              ? "Salvando..."
+              : veioDeConvite
+                ? "Criar senha e entrar"
+                : "Salvar nova senha"}
           </button>
         </form>
       </section>
