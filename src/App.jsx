@@ -9,6 +9,7 @@ import Compras from "./pages/Compras";
 import Financeiro from "./pages/Financeiro";
 import Relatorios from "./pages/Relatorios";
 import Materiais from "./pages/Materiais";
+import Configuracoes from "./pages/Configuracoes";
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/configuracoes" element={<Configuracoes />} />
         </Route>
       </Route>
 
