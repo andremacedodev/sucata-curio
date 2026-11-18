@@ -8,6 +8,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { getFinanceiro, createDespesa, createEntrada } from "../lib/db";
+import { paraDataInput, inicioDoDiaISO, fimDoDiaISO } from "../lib/datas";
 
 function fmt(v) {
   return Number(v || 0).toLocaleString("pt-BR", {
@@ -36,7 +37,7 @@ export default function Financeiro() {
   const [dataFim, setDataFim] = useState("");
 
   function formatDateInput(date) {
-    return date.toISOString().slice(0, 10);
+    return paraDataInput(date);
   }
 
   function getPeriodoRange(tipo) {
@@ -99,8 +100,8 @@ export default function Financeiro() {
     setLoading(true);
     try {
       const filtros = {};
-      if (dataInicio) filtros.dataInicio = dataInicio;
-      if (dataFim) filtros.dataFim = dataFim + "T23:59:59";
+      if (dataInicio) filtros.dataInicio = inicioDoDiaISO(dataInicio);
+      if (dataFim) filtros.dataFim = fimDoDiaISO(dataFim);
       const data = await getFinanceiro(filtros);
       setRegistros(data);
     } catch (e) {

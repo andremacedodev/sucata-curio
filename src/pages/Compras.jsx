@@ -8,6 +8,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { getCompras, deleteCompra } from "../lib/db";
+import { inicioDoDiaISO, fimDoDiaISO } from "../lib/datas";
 import { useAuth } from "../contexts/AuthContext";
 import { baixarPDF, compartilharWhatsApp } from "../lib/pdf";
 
@@ -31,8 +32,8 @@ export default function Compras() {
     setLoading(true);
     try {
       const filtros = {};
-      if (dataInicio) filtros.dataInicio = dataInicio;
-      if (dataFim) filtros.dataFim = dataFim + "T23:59:59";
+      if (dataInicio) filtros.dataInicio = inicioDoDiaISO(dataInicio);
+      if (dataFim) filtros.dataFim = fimDoDiaISO(dataFim);
       const data = await getCompras({ ...filtros, limit: 100 });
       setCompras(data);
     } catch (e) {

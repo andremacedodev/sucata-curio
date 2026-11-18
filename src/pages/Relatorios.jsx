@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getComprasPorMaterial, getFinanceiro } from "../lib/db";
+import { paraDataInput, inicioDoDiaISO, fimDoDiaISO } from "../lib/datas";
 import {
   BarChart,
   Bar,
@@ -46,7 +47,7 @@ const PERIODOS = [
 ];
 
 function formatDateInput(date) {
-  return date.toISOString().slice(0, 10);
+  return paraDataInput(date);
 }
 
 function getPeriodoRange(diasOrTipo) {
@@ -121,8 +122,8 @@ export default function Relatorios() {
       setLoading(true);
       try {
         const filtros = {};
-        if (dataInicio) filtros.dataInicio = dataInicio + "T00:00:00";
-        if (dataFim) filtros.dataFim = dataFim + "T23:59:59";
+        if (dataInicio) filtros.dataInicio = inicioDoDiaISO(dataInicio);
+        if (dataFim) filtros.dataFim = fimDoDiaISO(dataFim);
         if (!dataInicio && !dataFim) {
           const range = getPeriodoRange(PERIODOS[periodo].dias);
           filtros.dataInicio = range.inicio.toISOString();
