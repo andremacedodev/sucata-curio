@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   BarChart3,
+  Building2,
   LayoutDashboard,
   List,
   LogOut,
@@ -49,6 +50,14 @@ const navItems = [
     icon: Settings,
     roles: ["ADMIN", "OPERADOR"],
   },
+  {
+    to: "/configuracoes",
+    label: "Configurações",
+    icon: Building2,
+    roles: ["ADMIN"],
+    // Barra inferior do celular já tem 6 itens: no celular fica no topo
+    mostrarNoCelular: false,
+  },
 ];
 
 // Logo da empresa (se cadastrado e carregar); senão, ícone do Peso Certo.
@@ -85,12 +94,10 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col lg:flex-row bg-gray-50">
       <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-200 min-h-screen">
         <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center gap-2 min-w-0">
-            <LogoEmpresa url={company?.logo_url} className="h-8 max-w-[72px]" />
-            <span className="font-bold text-gray-900 text-lg truncate">
-              {nomeEmpresa}
-            </span>
-          </div>
+          <LogoEmpresa url={company?.logo_url} className="h-10 max-w-full" />
+          <p className="font-bold text-gray-900 leading-tight mt-2 break-words">
+            {nomeEmpresa}
+          </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {profile?.nome || profile?.email}
           </p>
@@ -139,14 +146,26 @@ export default function Layout() {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-            aria-label="Sair"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {role === "ADMIN" && (
+              <Link
+                to="/configuracoes"
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                aria-label="Configurações da empresa"
+                title="Configurações"
+              >
+                <Building2 className="w-5 h-5" />
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+              aria-label="Sair"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
@@ -158,7 +177,9 @@ export default function Layout() {
         className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {visibleItems.map(({ to, label, curto, icon: Icon }) => (
+        {visibleItems
+          .filter((item) => item.mostrarNoCelular !== false)
+          .map(({ to, label, curto, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

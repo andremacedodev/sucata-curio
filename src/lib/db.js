@@ -336,3 +336,109 @@ export async function getComprasPorMaterial({ dataInicio, dataFim } = {}) {
 
   return Object.values(agrupado).sort((a, b) => b.totalReais - a.totalReais);
 }
+
+// ============================================================
+// EMPRESA (Configurações)
+// ============================================================
+
+const BUCKET_LOGOS = "logos";
+
+// Atualiza dados da empresa. RLS: só admin da empresa.
+// Se o banco recusar sem erro (0 linhas), avisa explicitamente.
+export async function updateEmpresa(companyId, campos) {
+  const { data, error } = await supabase
+    .from("companies")
+    .update(campos)
+    .eq("id", companyId)
+    .select("id, nome, telefone, endereco, bairro, cnpj, logo_url")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    throw new Error(
+      "Não foi possível salvar: apenas o administrador da empresa pode alterar estes dados.",
+    );
+  }
+  return data;
+}
+
+// Reduz a imagem (máx. 600px) e converte para PNG, mantendo transparência.
+// Evita estourar o limite de 2 MB com foto tirada no celular.
+async function prepararLogo(arquivo) {
+  const tiposAceitos = ["image/png", "image/jpeg", "image/webp"];
+  if (!tiposAceitos.includes(arquivo.type)) {
+    throw new Error("Formato não suportado. Envie PNG, JPG ou WEBP.");
+  }
+
+  const url = URL.createObjectURL(arquivo);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+      i.src = url;
+    });
+
+    const escala = Math.min(1, 600 / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * escala);
+    canvas.height = Math.round(img.height * escala);
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/png"),
+    );
+    if (!blob) throw new Error("Não foi possível converter a imagem.");
+    if (blob.size > 2 * 1024 * 1024) {
+      throw new Error("Imagem muito grande mesmo após reduzir (máx. 2 MB).");
+    }
+    return blob;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Caminho do arquivo dentro do bucket, a partir da URL pública (ou null se
+// o logo não estiver no nosso bucket, ex.: /logo_sucata.jpeg).
+function caminhoNoBucket(urlPublica) {
+  const marcador = `/storage/v1/object/public/${BUCKET_LOGOS}/`;
+  const i = urlPublica?.indexOf(marcador) ?? -1;
+  return i >= 0 ? decodeURIComponent(urlPublica.slice(i + marcador.length)) : null;
+}
+
+// Envia novo logo para logos/<company_id>/, grava a URL na empresa e apaga
+// o arquivo anterior. Retorna { empresa, aviso }.
+export async function enviarLogoEmpresa(companyId, arquivo, logoAnterior) {
+  const blob = await prepararLogo(arquivo);
+  const caminho = `${companyId}/logo-${Date.now()}.png`;
+
+  const { error: errUpload } = await supabase.storage
+    .from(BUCKET_LOGOS)
+    .upload(caminho, blob, { contentType: "image/png", upsert: false });
+  if (errUpload) throw new Error("Erro ao enviar o logo: " + errUpload.message);
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BUCKET_LOGOS).getPublicUrl(caminho);
+
+  const empresa = await updateEmpresa(companyId, { logo_url: publicUrl });
+  const aviso = await apagarArquivoLogo(logoAnterior);
+  return { empresa, aviso };
+}
+
+// Remove o logo da empresa (volta a usar o ícone do Peso Certo).
+export async function removerLogoEmpresa(companyId, logoAtual) {
+  const empresa = await updateEmpresa(companyId, { logo_url: null });
+  const aviso = await apagarArquivoLogo(logoAtual);
+  return { empresa, aviso };
+}
+
+// Apagar o arquivo antigo não é crítico: se falhar, devolve um aviso
+// para a tela mostrar, em vez de esconder o problema.
+async function apagarArquivoLogo(urlPublica) {
+  const caminho = caminhoNoBucket(urlPublica);
+  if (!caminho) return "";
+  const { error } = await supabase.storage.from(BUCKET_LOGOS).remove([caminho]);
+  return error
+    ? "Logo atualizado, mas o arquivo antigo não pôde ser apagado: " + error.message
+    : "";
+}
