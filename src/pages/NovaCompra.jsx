@@ -38,7 +38,9 @@ export default function NovaCompra() {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    getMateriais().then(setMateriais).catch(console.error);
+    getMateriais()
+      .then(setMateriais)
+      .catch((e) => setErro("Erro ao carregar materiais: " + e.message));
   }, []);
 
   function atualizarItem(id, campo, valor) {
@@ -77,7 +79,7 @@ export default function NovaCompra() {
 
   const totalGeral = itens.reduce((acc, i) => acc + i.valor_total, 0);
 
-  const podeсалvar =
+  const podeSalvar =
     itens.every(
       (i) =>
         i.material_nome.trim() &&
@@ -86,7 +88,7 @@ export default function NovaCompra() {
     ) && totalGeral > 0;
 
   async function salvarCompra() {
-    if (!podeСалvar) return;
+    if (!podeSalvar || salvando) return;
     setErro("");
     setSalvando(true);
     try {
@@ -113,19 +115,6 @@ export default function NovaCompra() {
     }
   }
 
-  // Corrigir o nome da função de validação
-  const podeСалvar = podeCalvar;
-
-  function podeCalvar() {
-    return (
-      itens.every(
-        (i) =>
-          i.material_nome.trim() &&
-          parseFloat(i.peso_kg) > 0 &&
-          parseFloat(i.preco_por_kg) > 0,
-      ) && totalGeral > 0
-    );
-  }
 
   // ---- Tela de sucesso após salvar ----
   if (compraSalva) {
@@ -335,7 +324,7 @@ export default function NovaCompra() {
         </div>
         <button
           onClick={salvarCompra}
-          disabled={!podeCalvar() || salvando}
+          disabled={!podeSalvar || salvando}
           className="btn-primary py-4 px-8 text-base"
         >
           {salvando ? "Salvando..." : "Salvar Compra"}

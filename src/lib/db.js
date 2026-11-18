@@ -94,35 +94,22 @@ export async function createCompra({
   observacoes,
   itens,
 }) {
-  // Calcula total
-  const valor_total = itens.reduce((acc, item) => acc + item.valor_total, 0);
+  // Compra + itens + saída no financeiro numa única transação (função
+  // criar_compra no banco). Se qualquer parte falhar, nada é gravado.
+  // Totais e número do recibo são calculados no banco.
+  const { data: compra, error } = await supabase.rpc("criar_compra", {
+    p_cliente_nome: cliente_nome,
+    p_forma_pagamento: forma_pagamento,
+    p_observacoes: observacoes,
+    p_itens: itens.map((item) => ({
+      material_id: item.material_id || null,
+      material_nome: item.material_nome,
+      peso_kg: item.peso_kg,
+      preco_por_kg: item.preco_por_kg,
+    })),
+  });
 
-  // 1. Cria o cabeçalho da compra
-  const { data: compra, error: errCompra } = await supabase
-    .from("compras")
-    .insert([{ cliente_nome, forma_pagamento, observacoes, valor_total }])
-    .select()
-    .single();
-
-  if (errCompra) throw errCompra;
-
-  // 2. Cria os itens vinculados à compra
-  const itensParaInserir = itens.map((item) => ({
-    compra_id: compra.id,
-    material_id: item.material_id || null,
-    material_nome: item.material_nome,
-    peso_kg: item.peso_kg,
-    preco_por_kg: item.preco_por_kg,
-    valor_total: item.valor_total,
-  }));
-
-  const { error: errItens } = await supabase
-    .from("itens_compra")
-    .insert(itensParaInserir);
-
-  if (errItens) throw errItens;
-
-  // O trigger no banco já registra automaticamente no financeiro
+  if (error) throw error;
   return compra;
 }
 
