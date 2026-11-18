@@ -8,9 +8,10 @@
 //   * desativado nesta empresa         -> reativa com o papel escolhido
 //   * ativo em OUTRA empresa           -> erro (o app usa 1 empresa por usuário)
 //
-// Precisa da chave de serviço (criar usuário), por isso roda no servidor.
-// SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY já vêm
-// configuradas automaticamente nas Edge Functions do Supabase.
+// Precisa da chave secreta (criar usuário), por isso roda no servidor.
+// Usa a chave nova "secret" (SUPABASE_SECRET_KEYS, formato sb_secret_...) e,
+// se o projeto ainda não tiver chaves novas, a antiga SUPABASE_SERVICE_ROLE_KEY.
+// Ambas já vêm configuradas automaticamente nas Edge Functions do Supabase.
 //
 // Publicar: painel > Edge Functions > Deploy a new function > Via Editor,
 // nome "convidar-membro", colar este arquivo. Ou: supabase functions deploy convidar-membro
@@ -40,9 +41,8 @@ function resposta(corpo: unknown, status = 200) {
 type Cliente = any;
 
 export interface Dependencias {
-  // cliente com o token de quem chamou (para saber QUEM é)
-  clienteDoUsuario: (authHeader: string) => Cliente;
-  // cliente com a chave de serviço (para convidar e gravar o vínculo)
+  // cliente com a chave secreta: identifica quem chamou (pelo token da
+  // sessão), envia o convite e grava o vínculo
   clienteAdmin: () => Cliente;
 }
 
@@ -51,12 +51,14 @@ export async function tratar(req: Request, deps: Dependencias) {
   if (req.method !== "POST") return resposta({ erro: "Método não permitido." }, 405);
 
   try {
-    // 1. Quem está chamando?
-    const authHeader = req.headers.get("Authorization") ?? "";
+    // 1. Quem está chamando? (token da sessão do usuário logado)
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    if (!token) return resposta({ erro: "Sessão expirada. Entre novamente." }, 401);
+    const admin = deps.clienteAdmin();
     const {
       data: { user },
       error: erroUsuario,
-    } = await deps.clienteDoUsuario(authHeader).auth.getUser();
+    } = await admin.auth.getUser(token);
     if (erroUsuario || !user) return resposta({ erro: "Sessão expirada. Entre novamente." }, 401);
 
     // 2. Dados do convite
@@ -75,8 +77,6 @@ export async function tratar(req: Request, deps: Dependencias) {
     if (!EMAIL_RE.test(email)) return resposta({ erro: "E-mail inválido." }, 400);
     if (!["admin", "operator"].includes(role)) return resposta({ erro: "Papel inválido." }, 400);
     if (!UUID_RE.test(companyId)) return resposta({ erro: "Empresa inválida." }, 400);
-
-    const admin = deps.clienteAdmin();
 
     // 3. Quem chama é admin ativo desta empresa (ativa)?
     const { data: souAdmin, error: erroAdmin } = await admin
@@ -169,18 +169,33 @@ export async function tratar(req: Request, deps: Dependencias) {
   }
 }
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+// Chave secreta: nova (SUPABASE_SECRET_KEYS = {"default": "sb_secret_..."})
+// com fallback para a antiga (SUPABASE_SERVICE_ROLE_KEY).
+export function chaveSecreta(env: (nome: string) => string | undefined): string {
+  try {
+    const chaves = JSON.parse(env("SUPABASE_SECRET_KEYS") ?? "{}");
+    const nova = chaves.default ?? Object.values(chaves)[0];
+    if (typeof nova === "string" && nova) return nova;
+  } catch {
+    /* variável ausente ou fora do formato: tenta a antiga */
+  }
+  return env("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+}
 
-Deno.serve((req) =>
-  tratar(req, {
-    clienteDoUsuario: (authHeader) =>
-      createClient(SUPABASE_URL, ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-        auth: { persistSession: false },
-      }),
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SECRET_KEY = chaveSecreta((n) => Deno.env.get(n));
+
+Deno.serve((req) => {
+  if (!SUPABASE_URL || !SECRET_KEY) {
+    return resposta(
+      { erro: "Função sem chave secreta do Supabase configurada (SUPABASE_SECRET_KEYS / SUPABASE_SERVICE_ROLE_KEY)." },
+      500,
+    );
+  }
+  return tratar(req, {
     clienteAdmin: () =>
-      createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }),
-  })
-);
+      createClient(SUPABASE_URL, SECRET_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      }),
+  });
+});
